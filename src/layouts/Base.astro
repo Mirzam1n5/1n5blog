@@ -35,6 +35,7 @@ const currentPath = Astro.url.pathname;
           <li><a href="/" class={currentPath === '/' ? 'active' : ''}>home</a></li>
           <li><a href="/blog" class={currentPath.startsWith('/blog') ? 'active' : ''}>blog</a></li>
           <li><a href="/projects" class={currentPath.startsWith('/projects') ? 'active' : ''}>projects</a></li>
+          <li><a href="/gallery" class={currentPath.startsWith('/gallery') ? 'active' : ''}>gallery</a></li>
         </ul>
         <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
           <span class="toggle-dot" id="toggle-dot"></span>
