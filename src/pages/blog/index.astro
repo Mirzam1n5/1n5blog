@@ -1,0 +1,36 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const allPosts = await getCollection('blog');
+const posts = allPosts.sort(
+  (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+);
+
+function formatDate(date) {
+  return new Date(date).toISOString().slice(0, 7);
+}
+---
+
+<Base title="Blog">
+  <section class="section" style="padding-top: 48px;">
+    <div class="section-header">
+      <span class="section-label">writing</span>
+    </div>
+    {posts.length === 0 ? (
+      <p style="color: var(--text-dim); font-size: 12px; padding: 16px 0;">no posts yet.</p>
+    ) : (
+      <div class="posts-grid">
+        {posts.map(post => (
+          <a href={`/blog/${post.slug}`} class="post-card">
+            <div class="post-card-meta">
+              <span class="post-date">{formatDate(post.data.date)}</span>
+              <span class="post-tag">{post.data.tags?.[0] ?? ''}</span>
+            </div>
+            <div class="post-card-title">{post.data.title}</div>
+          </a>
+        ))}
+      </div>
+    )}
+  </section>
+</Base>

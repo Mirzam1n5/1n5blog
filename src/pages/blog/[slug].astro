@@ -1,0 +1,37 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  return posts.map(post => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await post.render();
+
+function formatDateLong(date: string | Date): string {
+  return new Date(date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+---
+
+<Base title={post.data.title} description={post.data.description ?? post.data.title}>
+  <article class="post-page">
+    <a href="/blog" class="post-page-back">← all posts</a>
+    <p class="post-page-meta">
+      {formatDateLong(post.data.date)}
+      {post.data.tags && post.data.tags.map((t: string) => ` · ${t}`)}
+    </p>
+    <h1 class="post-page-title">{post.data.title}</h1>
+    <div class="post-page-content">
+      <Content />
+    </div>
+  </article>
+</Base>

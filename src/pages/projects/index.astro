@@ -1,0 +1,65 @@
+---
+import Base from '../../layouts/Base.astro';
+
+let projects: any[] = [];
+try {
+  const res = await fetch('https://api.github.com/users/Mirzam1n5/repos?sort=updated&per_page=20');
+  if (res.ok) {
+    const data = await res.json();
+    projects = data.filter((r: any) => !r.fork);
+  }
+} catch {
+  projects = [];
+}
+
+function langClass(lang: string | null): string {
+  if (!lang) return 'lang-other';
+  const map: Record<string, string> = {
+    'C': 'lang-c',
+    'C++': 'lang-cpp',
+    'Rust': 'lang-rust',
+    'Python': 'lang-python',
+    'VHDL': 'lang-vhdl',
+  };
+  return map[lang] ?? 'lang-other';
+}
+---
+
+<Base title="Projects">
+  <section class="section" style="padding-top: 48px;">
+    <div class="section-header">
+      <span class="section-label">projects</span>
+      <a
+        href="https://github.com/Mirzam1n5"
+        class="see-more"
+        target="_blank"
+        rel="noopener"
+      >github →</a>
+    </div>
+    {projects.length === 0 ? (
+      <p style="color: var(--text-dim); font-size: 12px; padding: 16px 0;">
+        couldn't load projects — check <a href="https://github.com/Mirzam1n5" style="color: var(--text-muted);">github.com/Mirzam1n5</a>
+      </p>
+    ) : (
+      <div class="projects-grid">
+        {projects.map((repo: any) => (
+          <a href={repo.html_url} class="project-card" target="_blank" rel="noopener">
+            <p class="project-name">{repo.name}</p>
+            <p class="project-desc">{repo.description ?? 'no description.'}</p>
+            <div class="project-meta">
+              {repo.language && (
+                <span class={`project-lang ${langClass(repo.language)}`}>{repo.language}</span>
+              )}
+              {repo.stargazers_count > 0 && (
+                <span>{repo.stargazers_count} stars</span>
+              )}
+              {repo.stargazers_count === 0 && !repo.language && (
+                <span>—</span>
+              )}
+            </div>
+          </a>
+        ))}
+      </div>
+    )}
+  </section>
+</Base>
