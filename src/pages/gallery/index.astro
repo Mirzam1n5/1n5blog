@@ -1,0 +1,37 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const items = (await getCollection('gallery'))
+  .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+---
+
+<Base title="Gallery">
+  <section class="section" style="padding-top: 48px;">
+    <div class="section-header">
+      <span class="section-label">gallery</span>
+    </div>
+    {items.length === 0 ? (
+      <p style="color: var(--text-dim); font-size: 12px; padding: 16px 0;">nothing here yet.</p>
+    ) : (
+      <div class="gallery-grid">
+        {items.map(item => (
+          <div class="gallery-card">
+            <div class="gallery-img-wrap">
+              <img src={item.data.image} alt={item.data.title} loading="lazy" />
+            </div>
+            <div class="gallery-meta">
+              <span class="gallery-title">{item.data.title}</span>
+              {item.data.caption && <span class="gallery-caption">{item.data.caption}</span>}
+              {item.data.source && (
+                item.data.source_url
+                  ? <a href={item.data.source_url} class="gallery-source" target="_blank" rel="noopener">via {item.data.source}</a>
+                  : <span class="gallery-source">{item.data.source}</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </section>
+</Base>
