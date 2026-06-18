@@ -1,5 +1,5 @@
 ---
-title: "My own OS?"
+title: "Aosta"
 date: 2026-03-28
 description: "Not so long ago, I started writing my own operating system."
 tags: ["osdev", "aosta"]
