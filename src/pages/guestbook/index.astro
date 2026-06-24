@@ -22,7 +22,7 @@ const NAME_COLORS = [
     </div>
 
     <p class="guestbook-intro">
-      Leave a note, say hi, or just let me know you stopped by~
+      Leave a note, say hi, or just let me know you stopped by. Visible to everyone who visits.
     </p>
 
     <button class="sign-btn" id="gb-open-btn" type="button">sign guestbook</button>
@@ -81,8 +81,11 @@ const NAME_COLORS = [
 
 <script>
   // ── Supabase REST config ──────────────────────────────────
-  const SUPABASE_URL = 'https://lxbwchfijswrzbagkxsz.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4YndjaGZpanN3cnpiYWdreHN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMjU1MTQsImV4cCI6MjA5NzkwMTUxNH0.M4x-g-CghHP8KYbjlJnufyP45CBh3aX0UC0jMaOOZUU';
+  // Public anon key — safe to expose client-side. Row Level Security
+  // policies on the `guestbook` table control what it's allowed to do
+  // (insert + select only). See setup instructions provided separately.
+  const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
+  const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';
 
   const REST_URL = `${SUPABASE_URL}/rest/v1/guestbook`;
   const HEADERS = {
@@ -90,6 +93,38 @@ const NAME_COLORS = [
     'apikey': SUPABASE_ANON_KEY,
     'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
   };
+
+  // ── Ownership tokens ───────────────────────────────────────
+  // Each signature this browser has ever posted gets a random token,
+  // stored locally. A "delete" button only shows up next to entries
+  // whose token matches one this browser holds — so visitors can only
+  // remove their own entries, never anyone else's.
+  const OWNED_KEY = 'gb-owned-tokens';
+
+  function getOwnedTokens() {
+    try {
+      return JSON.parse(localStorage.getItem(OWNED_KEY) || '{}');
+    } catch {
+      return {};
+    }
+  }
+
+  function rememberOwnedToken(entryId, token) {
+    const owned = getOwnedTokens();
+    owned[entryId] = token;
+    localStorage.setItem(OWNED_KEY, JSON.stringify(owned));
+  }
+
+  function forgetOwnedToken(entryId) {
+    const owned = getOwnedTokens();
+    delete owned[entryId];
+    localStorage.setItem(OWNED_KEY, JSON.stringify(owned));
+  }
+
+  function generateToken() {
+    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+    return 'tok-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  }
 
   const listWrap   = document.getElementById('gb-list-wrap');
   const statusEl   = document.getElementById('gb-status');
@@ -128,23 +163,31 @@ const NAME_COLORS = [
 
     countEl.textContent = `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`;
 
-    const html = entries.map(e => `
-      <div class="guestbook-entry">
+    const owned = getOwnedTokens();
+
+    const html = entries.map(e => {
+      const isOwn = Boolean(owned[e.id]);
+      return `
+      <div class="guestbook-entry" data-id="${e.id}">
         <div class="guestbook-entry-bar" style="background:${escapeHtml(e.color || '#5a7ab0')};"></div>
         <div>
           <div class="guestbook-entry-name" style="color:${escapeHtml(e.color || '#5a7ab0')};">${escapeHtml(e.name)}</div>
           <div class="guestbook-entry-text">${escapeHtml(e.message)}</div>
-          <div class="guestbook-entry-date">${formatDate(e.created_at)}</div>
+          <div class="guestbook-entry-footer">
+            <span class="guestbook-entry-date">${formatDate(e.created_at)}</span>
+            ${isOwn ? `<button type="button" class="guestbook-entry-delete" data-id="${e.id}">delete</button>` : ''}
+          </div>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     listWrap.innerHTML = `<div class="guestbook-list">${html}</div>`;
   }
 
   async function loadEntries() {
     try {
-      const res = await fetch(`${REST_URL}?select=name,message,color,created_at&order=created_at.desc`, {
+      const res = await fetch(`${REST_URL}?select=id,name,message,color,created_at&order=created_at.desc`, {
         headers: HEADERS,
       });
       if (!res.ok) throw new Error('failed to load');
@@ -210,13 +253,20 @@ const NAME_COLORS = [
     submitBtn.disabled = true;
     submitBtn.textContent = 'signing…';
 
+    const token = generateToken();
+
     try {
       const res = await fetch(REST_URL, {
         method: 'POST',
-        headers: { ...HEADERS, 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ name, message, color }),
+        headers: { ...HEADERS, 'Prefer': 'return=representation' },
+        body: JSON.stringify({ name, message, color, owner_token: token }),
       });
       if (!res.ok) throw new Error('insert failed');
+
+      const [created] = await res.json();
+      if (created && created.id != null) {
+        rememberOwnedToken(created.id, token);
+      }
 
       closeModal();
       await loadEntries();
@@ -226,6 +276,34 @@ const NAME_COLORS = [
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'sign';
+    }
+  });
+
+  // ── Delete (only available for entries this browser owns) ──
+  listWrap.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.guestbook-entry-delete');
+    if (!btn) return;
+
+    const id = btn.dataset.id;
+    const owned = getOwnedTokens();
+    const token = owned[id];
+    if (!token) return;
+
+    btn.disabled = true;
+    btn.textContent = '…';
+
+    try {
+      const res = await fetch(`${REST_URL}?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: { ...HEADERS, 'x-owner-token': token, 'Prefer': 'return=minimal' },
+      });
+      if (!res.ok) throw new Error('delete failed');
+
+      forgetOwnedToken(id);
+      await loadEntries();
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'delete';
     }
   });
 

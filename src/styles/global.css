@@ -435,9 +435,19 @@ img { display: block; max-width: 100%; }
   transition: color 0.15s, border-color 0.15s;
 }
 
+.hero-links a.hero-link-kofi {
+  color: #b8804a;
+  border-color: rgba(184, 128, 74, 0.35);
+}
+
 .hero-links a:hover {
   color: var(--text-primary);
   border-color: var(--text-muted);
+}
+
+.hero-links a.hero-link-kofi:hover {
+  color: #d39a63;
+  border-color: #b8804a;
 }
 
 /* ── Avatar ── */
@@ -681,6 +691,32 @@ code, pre, .post-page-content code, .post-page-content pre {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-variant-numeric: tabular-nums;
+}
+
+.guestbook-entry-footer {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.guestbook-entry-delete {
+  font-family: 'Roboto', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-transform: uppercase;
+  transition: color 0.15s;
+}
+
+.guestbook-entry-delete:hover { color: #a36464; }
+
+.guestbook-entry-delete:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .guestbook-empty,
