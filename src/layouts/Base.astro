@@ -4,9 +4,10 @@ import '../styles/global.css';
 interface Props {
   title?: string;
   description?: string;
+  showStars?: boolean;
 }
 
-const { title = 'Mirzam', description = 'Embedded systems, low-level software, and occasional writing.' } = Astro.props;
+const { title = 'Mirzam', description = 'Embedded systems, low-level software, and occasional writing.', showStars = false } = Astro.props;
 const currentPath = Astro.url.pathname;
 ---
 
@@ -24,35 +25,41 @@ const currentPath = Astro.url.pathname;
   </head>
   <body>
 
-    <div id="starfield-wrap" style="position:absolute;top:0;left:0;width:100%;height:480px;pointer-events:none;z-index:0;overflow:hidden;">
-      <canvas id="stars-canvas" style="display:block;width:100%;height:100%;"></canvas>
+    {showStars && (
+      <div id="starfield-wrap" style="position:absolute;top:0;left:0;width:100%;height:480px;pointer-events:none;z-index:0;overflow:hidden;">
+        <canvas id="stars-canvas" style="display:block;width:100%;height:100%;"></canvas>
+      </div>
+    )}
+
+    <div class="nav-wrap">
+      <nav class="nav">
+        <a href="/" class="nav-logo">mirzam</a>
+        <div class="nav-right">
+          <ul class="nav-links">
+            <li><a href="/" class={currentPath === '/' ? 'active' : ''}>home</a></li>
+            <li><a href="/blog" class={currentPath.startsWith('/blog') ? 'active' : ''}>blog</a></li>
+            <li><a href="/projects" class={currentPath.startsWith('/projects') ? 'active' : ''}>projects</a></li>
+            <li><a href="/gallery" class={currentPath.startsWith('/gallery') ? 'active' : ''}>gallery</a></li>
+          </ul>
+          <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+            <span class="toggle-dot" id="toggle-dot"></span>
+            <span id="toggle-label">light</span>
+          </button>
+        </div>
+      </nav>
     </div>
 
-    <nav class="nav">
-      <a href="/" class="nav-logo">mirzam</a>
-      <div class="nav-right">
-        <ul class="nav-links">
-          <li><a href="/" class={currentPath === '/' ? 'active' : ''}>home</a></li>
-          <li><a href="/blog" class={currentPath.startsWith('/blog') ? 'active' : ''}>blog</a></li>
-          <li><a href="/projects" class={currentPath.startsWith('/projects') ? 'active' : ''}>projects</a></li>
-          <li><a href="/gallery" class={currentPath.startsWith('/gallery') ? 'active' : ''}>gallery</a></li>
-        </ul>
-        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
-          <span class="toggle-dot" id="toggle-dot"></span>
-          <span id="toggle-label">light</span>
-        </button>
-      </div>
-    </nav>
+    <div class="page">
+      <slot />
 
-    <slot />
-
-    <footer class="footer" style="margin-top: 48px;">
-      <div class="footer-links">
-        <a href="https://github.com/Mirzam1n5" target="_blank" rel="noopener">github</a>
-        <a href="https://twitter.com/mirzam1n5" target="_blank" rel="noopener">twitter</a>
-        <a href="mailto:mirzam1nn5@gmail.com">email</a>
-      </div>
-    </footer>
+      <footer class="footer" style="margin-top: 48px;">
+        <div class="footer-links">
+          <a href="https://github.com/Mirzam1n5" target="_blank" rel="noopener">github</a>
+          <a href="https://twitter.com/mirzam1n5" target="_blank" rel="noopener">twitter</a>
+          <a href="mailto:mirzam1nn5@gmail.com">email</a>
+        </div>
+      </footer>
+    </div>
 
   </body>
 </html>
@@ -77,17 +84,17 @@ const currentPath = Astro.url.pathname;
 
   syncUI();
 
+  // ── Starfield (only present on pages that opt in via showStars) ──
+  const canvas = document.getElementById('stars-canvas');
+  const ctx    = canvas ? canvas.getContext('2d') : null;
+  let stars = [], meteors = [], raf = null;
+
   btn.addEventListener('click', () => {
     root.classList.toggle('light');
     localStorage.setItem('theme', root.classList.contains('light') ? 'light' : 'dark');
     syncUI();
-    initStars();
+    if (canvas) initStars();
   });
-
-  // ── Starfield ──────────────────────────────────────────
-  const canvas = document.getElementById('stars-canvas');
-  const ctx    = canvas.getContext('2d');
-  let stars = [], meteors = [], raf = null;
 
   function spawnMeteor(W, H, scattered) {
     meteors.push({
@@ -190,7 +197,9 @@ const currentPath = Astro.url.pathname;
     raf = requestAnimationFrame(() => loop(W, H));
   }
 
-  window.addEventListener('resize', initStars);
-  // Wait for layout to settle before reading offsetWidth
-  requestAnimationFrame(() => initStars());
+  if (canvas) {
+    window.addEventListener('resize', initStars);
+    // Wait for layout to settle before reading offsetWidth
+    requestAnimationFrame(() => initStars());
+  }
 </script>
