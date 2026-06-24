@@ -10,16 +10,4 @@ const blog = defineCollection({
   }),
 });
 
-const gallery = defineCollection({
-  type: 'data',
-  schema: z.object({
-    title: z.string(),
-    date: z.coerce.date(),
-    image: z.string(),
-    caption: z.string().optional(),
-    source: z.string().optional(),       
-    source_url: z.string().optional(),   
-  }),
-});
-
-export const collections = { blog, gallery };
+export const collections = { blog };

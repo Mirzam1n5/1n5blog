@@ -197,4 +197,4 @@ Key transformations:
 
 The program successfully tracks thousands of satellites in realtime. Currently, Starlink satellites are most frequently detected as the closest, there are thousands of them orbiting at ~550km altitude. Though there are other more interesting ones.
 
-![sat-tracker](/gallery/sttrex.jpg)
+![sat-tracker](/blog/sttrex.jpg)

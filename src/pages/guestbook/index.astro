@@ -1,0 +1,233 @@
+---
+import Base from '../../layouts/Base.astro';
+
+// Color palette for names — muted tones picked to match the site's
+// existing dusty, low-saturation accent colors (see .lang-* in global.css).
+const NAME_COLORS = [
+  { id: 'rose',   hex: '#b06b78' },
+  { id: 'amber',  hex: '#b8804a' },
+  { id: 'gold',   hex: '#a89048' },
+  { id: 'green',  hex: '#5a8a64' },
+  { id: 'teal',   hex: '#4a8a8a' },
+  { id: 'blue',   hex: '#5a7ab0' },
+  { id: 'violet', hex: '#8a6ab0' },
+];
+---
+
+<Base title="Guestbook" description="Sign the guestbook and leave a note.">
+  <section class="section" style="padding-top: 48px;">
+    <div class="section-header">
+      <span class="section-label">guestbook</span>
+      <span class="guestbook-count" id="gb-count"></span>
+    </div>
+
+    <p class="guestbook-intro">
+      Leave a note, say hi, or just let me know you stopped by~
+    </p>
+
+    <button class="sign-btn" id="gb-open-btn" type="button">sign guestbook</button>
+
+    <div id="gb-list-wrap" style="margin-top: 32px;">
+      <p class="guestbook-status" id="gb-status">loading…</p>
+    </div>
+  </section>
+
+  <!-- ── Modal ── -->
+  <div class="gb-modal-backdrop" id="gb-backdrop">
+    <div class="gb-modal" role="dialog" aria-modal="true" aria-labelledby="gb-modal-title">
+      <div class="gb-modal-header">
+        <span class="gb-modal-title" id="gb-modal-title">Sign Guestbook</span>
+        <button class="gb-modal-close" id="gb-close-btn" aria-label="Close" type="button">×</button>
+      </div>
+
+      <form id="gb-form">
+        <div class="gb-field">
+          <label class="gb-label" for="gb-name">name</label>
+          <input class="gb-input" id="gb-name" name="name" type="text" maxlength="40" autocomplete="off" required />
+        </div>
+
+        <div class="gb-field">
+          <label class="gb-label" for="gb-message">message</label>
+          <textarea class="gb-textarea" id="gb-message" name="message" maxlength="280" required></textarea>
+          <div class="gb-char-count"><span id="gb-char-count">0</span>/280</div>
+        </div>
+
+        <div class="gb-field">
+          <span class="gb-label">name color</span>
+          <div class="gb-colors" id="gb-colors">
+            {NAME_COLORS.map((c, i) => (
+              <button
+                type="button"
+                class={`gb-color-dot ${i === 0 ? 'selected' : ''}`}
+                style={`background:${c.hex};`}
+                data-color={c.hex}
+                aria-label={c.id}
+              ></button>
+            ))}
+          </div>
+          <input type="hidden" id="gb-color-input" value={NAME_COLORS[0].hex} />
+        </div>
+
+        <p class="gb-error" id="gb-error" style="display:none;"></p>
+
+        <div class="gb-actions">
+          <button type="button" class="gb-btn-cancel" id="gb-cancel-btn">cancel</button>
+          <button type="submit" class="gb-btn-submit" id="gb-submit-btn">sign</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</Base>
+
+<script>
+  // ── Supabase REST config ──────────────────────────────────
+  const SUPABASE_URL = 'https://lxbwchfijswrzbagkxsz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4YndjaGZpanN3cnpiYWdreHN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMjU1MTQsImV4cCI6MjA5NzkwMTUxNH0.M4x-g-CghHP8KYbjlJnufyP45CBh3aX0UC0jMaOOZUU';
+
+  const REST_URL = `${SUPABASE_URL}/rest/v1/guestbook`;
+  const HEADERS = {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+  };
+
+  const listWrap   = document.getElementById('gb-list-wrap');
+  const statusEl   = document.getElementById('gb-status');
+  const countEl    = document.getElementById('gb-count');
+
+  const backdrop   = document.getElementById('gb-backdrop');
+  const openBtn    = document.getElementById('gb-open-btn');
+  const closeBtn   = document.getElementById('gb-close-btn');
+  const cancelBtn  = document.getElementById('gb-cancel-btn');
+  const form       = document.getElementById('gb-form');
+  const nameInput  = document.getElementById('gb-name');
+  const msgInput   = document.getElementById('gb-message');
+  const charCount  = document.getElementById('gb-char-count');
+  const colorWrap  = document.getElementById('gb-colors');
+  const colorInput = document.getElementById('gb-color-input');
+  const errorEl    = document.getElementById('gb-error');
+  const submitBtn  = document.getElementById('gb-submit-btn');
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function formatDate(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function renderEntries(entries) {
+    if (!entries || entries.length === 0) {
+      listWrap.innerHTML = '<p class="guestbook-empty">no entries yet — be the first to sign.</p>';
+      countEl.textContent = '';
+      return;
+    }
+
+    countEl.textContent = `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`;
+
+    const html = entries.map(e => `
+      <div class="guestbook-entry">
+        <div class="guestbook-entry-bar" style="background:${escapeHtml(e.color || '#5a7ab0')};"></div>
+        <div>
+          <div class="guestbook-entry-name" style="color:${escapeHtml(e.color || '#5a7ab0')};">${escapeHtml(e.name)}</div>
+          <div class="guestbook-entry-text">${escapeHtml(e.message)}</div>
+          <div class="guestbook-entry-date">${formatDate(e.created_at)}</div>
+        </div>
+      </div>
+    `).join('');
+
+    listWrap.innerHTML = `<div class="guestbook-list">${html}</div>`;
+  }
+
+  async function loadEntries() {
+    try {
+      const res = await fetch(`${REST_URL}?select=name,message,color,created_at&order=created_at.desc`, {
+        headers: HEADERS,
+      });
+      if (!res.ok) throw new Error('failed to load');
+      const data = await res.json();
+      renderEntries(data);
+    } catch (err) {
+      statusEl.textContent = "couldn't load the guestbook right now — try refreshing.";
+      listWrap.innerHTML = '';
+      listWrap.appendChild(statusEl);
+    }
+  }
+
+  // ── Modal open/close ──────────────────────────────────────
+  function openModal() {
+    backdrop.classList.add('open');
+    nameInput.focus();
+  }
+
+  function closeModal() {
+    backdrop.classList.remove('open');
+    form.reset();
+    charCount.textContent = '0';
+    errorEl.style.display = 'none';
+    document.querySelectorAll('.gb-color-dot').forEach((dot, i) => {
+      dot.classList.toggle('selected', i === 0);
+    });
+    colorInput.value = document.querySelector('.gb-color-dot').dataset.color;
+  }
+
+  openBtn.addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
+  cancelBtn.addEventListener('click', closeModal);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && backdrop.classList.contains('open')) closeModal();
+  });
+
+  // ── Color picker ──────────────────────────────────────────
+  colorWrap.addEventListener('click', (e) => {
+    const dot = e.target.closest('.gb-color-dot');
+    if (!dot) return;
+    document.querySelectorAll('.gb-color-dot').forEach(d => d.classList.remove('selected'));
+    dot.classList.add('selected');
+    colorInput.value = dot.dataset.color;
+  });
+
+  // ── Char counter ──────────────────────────────────────────
+  msgInput.addEventListener('input', () => {
+    charCount.textContent = String(msgInput.value.length);
+  });
+
+  // ── Submit ────────────────────────────────────────────────
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorEl.style.display = 'none';
+
+    const name = nameInput.value.trim();
+    const message = msgInput.value.trim();
+    const color = colorInput.value;
+
+    if (!name || !message) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'signing…';
+
+    try {
+      const res = await fetch(REST_URL, {
+        method: 'POST',
+        headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ name, message, color }),
+      });
+      if (!res.ok) throw new Error('insert failed');
+
+      closeModal();
+      await loadEntries();
+    } catch (err) {
+      errorEl.textContent = "couldn't sign right now — try again in a moment.";
+      errorEl.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'sign';
+    }
+  });
+
+  loadEntries();
+</script>
