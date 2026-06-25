@@ -22,7 +22,7 @@ const NAME_COLORS = [
     </div>
 
     <p class="guestbook-intro">
-      Leave a note, say hi, or just let me know you stopped by. Visible to everyone who visits.
+      Let me know you stopped by!
     </p>
 
     <button class="sign-btn" id="gb-open-btn" type="button">sign guestbook</button>
@@ -94,11 +94,7 @@ const NAME_COLORS = [
     'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
   };
 
-  // ── Ownership tokens ───────────────────────────────────────
-  // Each signature this browser has ever posted gets a random token,
-  // stored locally. A "delete" button only shows up next to entries
-  // whose token matches one this browser holds — so visitors can only
-  // remove their own entries, never anyone else's.
+  
   const OWNED_KEY = 'gb-owned-tokens';
 
   function getOwnedTokens() {
