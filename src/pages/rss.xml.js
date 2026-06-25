@@ -11,6 +11,7 @@ export async function GET(context) {
     title: 'Mirzam',
     description: 'Embedded systems, low-level software, and occasional writing.',
     site: context.site,
+    stylesheet: '/rss-style.xsl',
     items: sorted.map((post) => ({
       title: post.data.title,
       description: post.data.description ?? '',
