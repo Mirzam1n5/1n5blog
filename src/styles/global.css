@@ -571,6 +571,28 @@ img { display: block; max-width: 100%; }
 
 .post-page-content a:hover { border-color: var(--text-primary); }
 
+.post-license {
+  margin-top: 40px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
+.post-license a {
+  color: var(--text-muted);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.post-license a:hover {
+  color: var(--text-secondary);
+  border-color: var(--text-muted);
+}
+
 /* ── Footer ── */
 .footer {
   padding: 40px 48px 0;
@@ -590,6 +612,14 @@ img { display: block; max-width: 100%; }
 }
 
 .footer-links a:hover { color: var(--text-muted); }
+
+.footer-copyright {
+  margin-top: 16px;
+  padding-bottom: 40px;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
