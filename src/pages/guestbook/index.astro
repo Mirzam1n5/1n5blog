@@ -1,8 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
 
-// Color palette for names — muted tones picked to match the site's
-// existing dusty, low-saturation accent colors (see .lang-* in global.css).
 const NAME_COLORS = [
   { id: 'rose',   hex: '#b06b78' },
   { id: 'amber',  hex: '#b8804a' },
@@ -22,7 +20,7 @@ const NAME_COLORS = [
     </div>
 
     <p class="guestbook-intro">
-      Leave a note, say hi, or just let me know you stopped by. Visible to everyone who visits.
+      Let me know you stopped by!
     </p>
 
     <button class="sign-btn" id="gb-open-btn" type="button">sign guestbook</button>
@@ -81,10 +79,6 @@ const NAME_COLORS = [
 
 <script>
   // ── Supabase REST config ──────────────────────────────────
-  // Public anon key — safe to expose client-side. Row Level Security
-  // policies on the `guestbook` table control what it's allowed to do
-  // (insert + select only). Values come from environment variables set
-  // at build time — see .env.example and supabase/README.md.
   const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL;
   const SUPABASE_ANON_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
@@ -96,10 +90,6 @@ const NAME_COLORS = [
   };
 
   // ── Ownership tokens ───────────────────────────────────────
-  // Each signature this browser has ever posted gets a random token,
-  // stored locally. A "delete" button only shows up next to entries
-  // whose token matches one this browser holds — so visitors can only
-  // remove their own entries, never anyone else's.
   const OWNED_KEY = 'gb-owned-tokens';
 
   function getOwnedTokens() {

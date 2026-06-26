@@ -9,7 +9,7 @@ export async function GET(context) {
 
   return rss({
     title: 'Mirzam',
-    description: 'Embedded systems, low-level software, and occasional writing.',
+    description: 'Programming things I guess.',
     site: context.site,
     stylesheet: '/rss-style.xsl',
     items: sorted.map((post) => ({
